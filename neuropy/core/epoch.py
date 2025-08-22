@@ -91,6 +91,10 @@ class Epoch(DataWriter):
     @property
     def stops(self):
         return self._epochs.stop.values
+    
+    @property
+    def peak_times(self):
+        return self._epochs.peak_time.values
 
     @property
     def durations(self):
@@ -124,6 +128,10 @@ class Epoch(DataWriter):
             df_new = pd.concat([my_df, other_df]).reset_index(drop=True)
 
         return Epoch(epochs=df_new)
+
+    @property
+    def _df(self):
+        return self.to_dataframe()
 
     def add_epoch_manually(self, start, stop, label="", merge_dt: float or None = 0):
         comb_df = pd.DataFrame(
