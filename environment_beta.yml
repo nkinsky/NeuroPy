@@ -1,11 +1,11 @@
-name: NeuroPy2
+name: NeuroPy
 channels:
     - conda-forge
 dependencies:
-    - python
+    - python=3.11.6
     - numpy
     - scipy
-    - matplotlib
+    - matplotlib=3.9
     - pandas
     - joblib
     - scikit-learn
