@@ -93,7 +93,11 @@ def editor(
     sample_rate = sigs.sampling_rate
     sigs = sigs.traces.reshape(-1, 1)
     filtered_sig = signal_process.filter_sig.bandpass(
-        sigs, lf=120, hf=150, ax=0, fs=1250
+        sigs, lf=120, hf=250, ax=0, fs=1250
+    )
+
+    theta_filt_sig = signal_process.filter_sig.bandpass(
+        sigs, lf=4, hf=12, ax=0, fs=1250
     )
     t_start = 0.0
 
@@ -102,7 +106,7 @@ def editor(
 
     # ---- signal viewer ------
     view_traces = ephyviewer.TraceViewer.from_numpy(
-        np.hstack((sigs, filtered_sig)), sample_rate, t_start, "traces"
+        np.hstack((sigs, filtered_sig, theta_filt_sig)), sample_rate, t_start, "traces (raw, ripple, theta)"
     )
     view_traces.params["scale_mode"] = "by_channel"
     view_traces.auto_scale()
