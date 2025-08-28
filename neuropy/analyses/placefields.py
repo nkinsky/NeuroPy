@@ -13,11 +13,12 @@ from copy import deepcopy
 import seaborn as sns
 
 from neuropy import core
+from neuropy.core.epoch import Epoch
 from neuropy.utils.signal_process import ThetaParams
-from neuropy import plotting
+import neuropy.plotting.figure as figure
+from neuropy.plotting.ratemaps import plot_ratemap, plot_raw
 from neuropy.utils.mathutil import contiguous_regions
 from neuropy.externals.peak_prominence2d import getProminence
-
 
 class Pf1Dsplit():
     """Class used to split up Pf1D object by blocks to assess reliability"""
@@ -140,7 +141,7 @@ class Pf1D(core.Ratemap):
         xbin = np.arange(np.nanmin(x), np.nanmax(x) + grid_bin, grid_bin)
 
         if epochs is not None:
-            assert isinstance(epochs, core.Epoch), "epochs should be core.Epoch object"
+            assert isinstance(epochs, Epoch), "epochs should be core.Epoch object"
 
             spiketrains = [
                 np.concatenate(
@@ -271,7 +272,7 @@ class Pf1D(core.Ratemap):
 
         if ax is None:
             if subplots is None:
-                Fig = plotting.Fig(nrows=1, ncols=1, size=(8, 3))
+                Fig = figure.Fig(nrows=1, ncols=1, size=(8, 3))
                 ax = plt.subplot(Fig.gs[0])
                 ax.spines["right"].set_visible(True)
                 axphase = ax.twinx()
@@ -287,7 +288,7 @@ class Pf1D(core.Ratemap):
                     axphase=widgets.fixed(axphase),
                 )
             else:
-                Fig = plotting.Fig(nrows=subplots[1], ncols=subplots[0],
+                Fig = figure.Fig(nrows=subplots[1], ncols=subplots[0],
                                      size=(15, 10))
                 for cell in range(nCells):
                     ax = plt.subplot(Fig.gs[cell])
@@ -301,7 +302,7 @@ class Pf1D(core.Ratemap):
         return ax
 
     def plot_ratemaps(self, **kwargs):
-        return plotting.plot_ratemap(self, **kwargs)
+        return plot_ratemap(self, **kwargs)
 
     def plot_rasters(self, jitter=0, plot_time=False, scale=None, sort=True, ax=None):
         """Plot ratemap as a raster for each neuron
@@ -366,7 +367,7 @@ class Pf1D(core.Ratemap):
         return ax
 
     def plot_raw_ratemaps_laps(self, ax=None, subplots=(8, 9)):
-        return plotting.plot_raw_ratemaps()
+        return plot_raw()
 
     def neuron_slice(self, inds=None, ids=None):
         """Slice out neurons"""
