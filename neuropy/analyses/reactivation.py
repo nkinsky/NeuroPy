@@ -10,7 +10,7 @@ from scipy.ndimage import gaussian_filter
 from sklearn.decomposition import PCA, FastICA
 from typing import Union
 # from ..utils.mathutil import getICA_Assembly
-from .. import corehttps://github.com/nkinsky/3d_print_designs/blob/master/Rodent_models/RatSkull.stl
+from .. import core
 try:
     from ..plotting import Fig
 except ImportError:
