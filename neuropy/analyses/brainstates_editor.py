@@ -77,8 +77,10 @@ class StatesSource(ephyviewer.WritableEpochSource):
         state_number_dict = {"nrem": 1, "rem": 2, "quiet": 3, "active": 4, "nan": 5}
         df["name"] = self.ep_labels
         df["state"] = df["name"].map(state_number_dict)
-        df.sort_values(["time", "duration", "name"], inplace=True)
+        # df.sort_values(["time", "duration", "name"], inplace=True)
+        df.sort_values(["start", "duration", "name"], inplace=True)
         # df.to_pickle(self.filename)
+        df.to_csv(self.filename)
 
 
 def editor(
