@@ -229,8 +229,19 @@ class Pf1D(core.Ratemap):
         self.ratemap_spiketrains_phases = phase
 
     def plot_with_phase(
-        self, sigma=0, ax=None, normalize=True, stack=True, cmap="tab20b", subplots=(5, 8)
+        self, sigma=0, ax=None, normalize=True, stack=True, plot_thresh: float or None = None,
+            cmap="tab20b", subplots=(5, 8)
     ):
+        """plots ratemap with theta phase x position plotting of all spikes overlaid to visualize phase precession
+        :param sigma: smoothing kernel to use to smooth tuning curves
+        :param ax: axes to plot into
+        :param normalize: bool, normalize to max firing rate
+        :param stack: bool, plot from 0 to 4 pi, False = plot 0 to 2 pi only
+        :param plot_thresh: plot a FR threshold over the tuning curve
+        :param cmap: colormap to use for different cells
+        :param subplots: subplots to plot each cell onto, otherwise scroll through cell with a widget
+        :return: ax
+        """
         cmap = mpl.cm.get_cmap(cmap)
 
         # mapinfo = self.ratemaps
@@ -243,6 +254,11 @@ class Pf1D(core.Ratemap):
         if normalize:
             # ratemaps = [map_ / np.max(map_) for map_ in ratemaps]
             ratemaps = [map_ / np.max(map_) if len(map_) > 0 else np.array([]) for map_ in ratemaps]
+            plot_thresh_vals = [plot_thresh / np.max(map_) if len(map_) > 0 else np.nan for map_ in ratemaps]
+            plot_thresh_vals[plot_thresh_vals > 1] = np.nan
+        else:
+            plot_thresh_vals = [plot_thresh] * len(ratemaps)
+
         # phases = mapinfo["phases"]
         # position = mapinfo["pos"]
         phases = self.ratemap_spiketrains_phases
@@ -257,6 +273,8 @@ class Pf1D(core.Ratemap):
                 axphase.clear()
             ax.fill_between(bin_cntr, 0, ratemaps[cell], color=color, alpha=0.3)
             ax.plot(bin_cntr, ratemaps[cell], color=color, alpha=0.2)
+            if plot_thresh is not None:
+                ax.axhline(plot_thresh_vals[cell], color='r', linestyle='--')
             ax.set_xlabel("Position (cm)")
             ax.set_ylabel("Normalized frate") if normalize else ax.set_ylabel("frate")
             ax.set_title(f"Cell id {self.neuron_ids[cell]}")
