@@ -122,8 +122,7 @@ def editor(
         view_emg = ephyviewer.TraceViewer.from_numpy(
             emg, emg_sr, emg_t_start, "emg"
         )
-        view_emg.params["scale_mode"] = "by_channel"
-        view_emg.auto_scale()
+        view_emg.params["scale_mode"] = "real_scale"
         win.add_view(view_emg)
 
     # ----- brainstates viewer and encoder -----------
