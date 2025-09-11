@@ -352,6 +352,11 @@ class Epoch(DataWriter):
         else:
             return None
 
+    @staticmethod
+    def from_csv(f):
+        """Load properly formatted csv file"""
+        return Epoch(pd.read_csv(f))
+
     @property
     def is_overlapping(self):
         if self.n_epochs > 1:
