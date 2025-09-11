@@ -30,7 +30,7 @@ class DataWriter:
 
     @classmethod
     def from_file(cls, f, convert=False):
-        """
+        """Load in a file saved with the DataWriter.save method
         :param f: filename, full path
         :param convert: bool, True = send to class, False = keep as dict (left as default for legacy purposes)
         :return:
