@@ -60,6 +60,11 @@ class Neurons(DataWriter):
         """
         super().__init__(metadata=metadata)
 
+        for var, name in zip([neuron_ids, neuron_type, peak_channels, shank_ids],
+                             ["neuron_ids", "neuron_type", "peak_channels", "shank_ids"]):
+            if var is not None:
+                assert isinstance(var, np.ndarray), f"{name} must be np.ndarray"
+
         self.spiketrains = np.array(spiketrains, dtype="object")
         if neuron_ids is None:
             self.neuron_ids = np.arange(len(self.spiketrains))
