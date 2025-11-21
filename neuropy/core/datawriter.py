@@ -64,7 +64,7 @@ class DataWriter:
 
         assert isinstance(fp, (str, Path)), "filename is invalid"
         data = self.to_dict()
-        np.save(fp, data)
+        np.save(str(fp), data)
         print(f"{fp} saved")
 
     def save_with_date(self, fp):
