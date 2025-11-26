@@ -12,6 +12,7 @@ from scipy.signal import find_peaks, peak_widths
 from copy import deepcopy
 import seaborn as sns
 
+import neuropy.core
 from neuropy import core
 from neuropy.core.epoch import Epoch
 from neuropy.utils.signal_process import ThetaParams
@@ -141,7 +142,7 @@ class Pf1D(core.Ratemap):
         xbin = np.arange(np.nanmin(x), np.nanmax(x) + grid_bin, grid_bin)
 
         if epochs is not None:
-            assert isinstance(epochs, Epoch), "epochs should be core.Epoch object"
+            assert isinstance(epochs, (Epoch, neuropy.core.epoch.Epoch)), "epochs should be core.Epoch object"
 
             spiketrains = [
                 np.concatenate(
@@ -400,6 +401,7 @@ class Pf1D(core.Ratemap):
         pfslice.neuron_ids = self.neuron_ids[inds]
         pfslice.ratemap_spiketrains = [self.ratemap_spiketrains[ind] for ind in inds]
         pfslice.ratemap_spiketrains_pos = [self.ratemap_spiketrains_pos[ind] for ind in inds]
+        pfslice.ratemap_spiketrains_phases = [self.ratemap_spiketrains_phases[ind] for ind in inds]
 
         return pfslice
 
