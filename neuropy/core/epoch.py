@@ -682,7 +682,7 @@ class Epoch(DataWriter):
         """
         return self.as_array().flatten("C")
 
-    def to_point_process(self, t_start=None, t_stop=None, bin_size=(1 / 1250)):
+    def to_point_process(self, t_start=None, t_stop=None, bin_size=(1 / 1250), return_labels=False):
         """Returns 1d numpy boolean where True = epochs"""
         if t_start is None:
             t_start = 0
@@ -704,7 +704,10 @@ class Epoch(DataWriter):
             time_bool[start_ind:end_ind] = True
             labels[start_ind:end_ind] = label
 
-        return times, time_bool, labels
+        if return_labels:
+            return times, time_bool, labels
+        else:
+            return times, time_bool
 
     def add_epoch_buffer(self, buffer_sec: float or int or tuple or list):
         df = self._epochs.copy()
