@@ -21,7 +21,7 @@ class MiniscopeIO:
 
     def load_all_timestamps(
         self, format="UCLA", webcam: bool or int = False, exclude_str: str = "WebCam",
-            include_str = None, print_included_folders=False
+            include_str = None, tz="America/Detroit", print_included_folders=False
     ):
         """Loads multiple timestamps from multiple videos in the UCLA miniscope software file format
         (folder = ""hh_mm_ss")
@@ -73,19 +73,26 @@ class MiniscopeIO:
 
         # Loop through and load all timestamps, then concatenate
         times_list = []
-        for rec_folder in self.rec_folders:
+        for idr, rec_folder in enumerate(self.rec_folders):
             times_temp, _, _, _ = load_timestamps(
                 rec_folder, webcam=webcam, corrupted_videos="from_file"
             )
+            times_temp["Recording"] = idr
             times_list.append(times_temp)
 
         if not webcam:
             self.times_all = pd.concat(times_list)
 
+            # Localize time zone
+            self.times_all["Timestamps"] = self.times_all["Timestamps"].dt.tz_localize(tz)
+
             return self.times_all
         else:
             self.webcam_number = webcam
             self.webcam_times_all = pd.concat(times_list)
+
+            # Localize time zone
+            self.webcam_times_all["Timestamps"] = self.webcam_times_all["Timestamps"].dt.tz_localize(tz)
 
             return self.webcam_times_all
 
