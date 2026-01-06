@@ -302,6 +302,7 @@ def move_files_to_combined_folder(
 
     parent_folder = Path(parent_folder)
     combined_folder = parent_folder / "Miniscope_combined"
+    assert combined_folder.exists(), "Error: Create Miniscope_combined folder in `parent_folder` prior to running"
 
     # Get files
     movie_files = sorted(parent_folder.glob(re_pattern))
