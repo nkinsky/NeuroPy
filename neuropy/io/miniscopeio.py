@@ -16,12 +16,16 @@ class MiniscopeIO:
         self.basedir = Path(basedir)
         self.times_all = None
         self.orient_all = None
-        self.webcam_times_all = {}
+        self.webcam_times_all = None
+        self.webcam_number = None
+        self.ms_rec_start_df = None
+        self.webcam_rec_start_df = None
+
         pass
 
     def load_all_timestamps(
         self, format="UCLA", webcam: bool or int = False, exclude_str: str = "WebCam",
-            include_str = None, tz="America/Detroit", print_included_folders=False
+            include_str = None, tz="America/Detroit", print_included_folders=False, return_corrupt_times=False,
     ):
         """Loads multiple timestamps from multiple videos in the UCLA miniscope software file format
         (folder = ""hh_mm_ss")
@@ -32,6 +36,8 @@ class MiniscopeIO:
         :param exclude_str: exclude any folders containing this string from being loaded in.
         :param print_included_folders: bool, True = prints folders included in generating timestamps, useful
         for debugging mismatches in nframes, default=False
+        :param return_corrupt_times: bool, True = include corrupted timestamps in output. Adds in additional column to
+        output dataframe, a boolean noting if corrupt or not.
         :return:
         """
 
@@ -74,10 +80,12 @@ class MiniscopeIO:
         # Loop through and load all timestamps, then concatenate
         times_list = []
         for idr, rec_folder in enumerate(self.rec_folders):
-            times_temp, _, _, _ = load_timestamps(
-                rec_folder, webcam=webcam, corrupted_videos="from_file"
+            times_temp, _, _, _, good_bool = load_timestamps(
+                rec_folder, webcam=webcam, corrupted_videos="from_file", return_corrupt_times=return_corrupt_times,
             )
             times_temp["Recording"] = idr
+            if return_corrupt_times:
+                times_temp["Corrupt"] = ~good_bool
             times_list.append(times_temp)
 
         if not webcam:
@@ -130,11 +138,40 @@ class MiniscopeIO:
 
         self.orient_all = pd.concat(orient_list)
 
+    def get_rec_starts(self, format="UCLA", webcam: bool or int = False):
+        """Get start times of each miniscope recordings. Must run .load_all_timestamps first
+
+        NOTE: The miniscope will almost always have a frame in its buffer from BEFORE you hit record which is saved.
+        This frame has a negative 'Time Stamp (ms)` value. This code grabs the first frame with a positive value
+        from each recording."""
+
+        assert format == "UCLA"
+
+        ms_start_df = []
+        if not webcam:
+            all_rec_df_use = self.times_all
+        else:
+            all_rec_df_use = self.webcam_times_all
+        assert all_rec_df_use is not None, "Error loading recording starts. Must run .load_all_timestamps() first."
+
+        for idr in all_rec_df_use.Recording.unique():
+            rec_df = all_rec_df_use[(all_rec_df_use.Recording == idr) & (all_rec_df_use["Time Stamp (ms)"] >= 0)]
+            ms_start_df.append(rec_df.iloc[0])
+
+        ms_start_df = pd.DataFrame(ms_start_df)
+
+        if not webcam:
+            self.ms_rec_start_df = ms_start_df
+        else:
+            self.webcam_rec_start_df = ms_start_df
+
+        return ms_start_df
+
 
 def get_recording_metadata(rec_folder: pathlib.Path):
     """Get and return relevant metadata from a recording specified in rec_folder"""
 
-    assert isinstance(rec_folder, pathlib.Path)
+    rec_folder = Path(rec_folder)
 
     # Get video folder name from metaData.json file
     with open(rec_folder / "metaData.json", "rb") as f:
@@ -158,7 +195,8 @@ def get_recording_metadata(rec_folder: pathlib.Path):
 
 
 def load_timestamps(
-    rec_folder, webcam: False or True or int = False, corrupted_videos=None, print_success=False, print_corrupt_success=True
+    rec_folder, webcam: False or True or int = False, corrupted_videos=None, print_success=False,
+        print_corrupt_success=True, return_corrupt_times=False,
 ):
     """Loads in timestamps corresponding to all videos in rec_folder.
 
@@ -170,6 +208,7 @@ def load_timestamps(
     :param print_success: bool, True = print # frames found in each file, False=default
     :param print_corrupt_success: bool, True = print when you have succesfully detected and removed frames from a
     corrupted video.
+    :param return_corrupt_times: bool, False = chop out corrupt frame timestamps, True = return
     :return:
     """
 
@@ -230,11 +269,12 @@ def load_timestamps(
             print(f"Eliminating {len(bad_frame_range)} timestamps from corrupted video {corrupt_vid} in {rec_folder.parts[-1]} folder.")
         good_frame_bool[bad_frame_range] = 0
 
-    times = times[good_frame_bool]
     if print_success:
         print(str(sum(good_frame_bool)) + " total good frames found")
 
-    return times, rec_metadata, vid_metadata, rec_start
+    if not return_corrupt_times:
+        times = times[good_frame_bool]
+    return times, rec_metadata, vid_metadata, rec_start, good_frame_bool
 
 
 def load_orientation(rec_folder, corrupted_videos=None):
