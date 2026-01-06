@@ -223,19 +223,12 @@ def load_timestamps(
         corrupt_array = []
 
     for corrupt_vid in corrupt_array:
-        if print_corrupt_success:
-            print(
-                "Eliminating timestamps from corrupted video"
-                + str(corrupt_vid)
-                + " in "
-                + str(rec_folder.parts[-1] + " folder.")
-            )
-        good_frame_bool[
-            range(
+        bad_frame_range = range(
                 corrupt_vid * f_per_file,
-                np.min((f_per_file * (corrupt_vid + 1), nframes)),
-            )
-        ] = 0
+                np.min((f_per_file * (corrupt_vid + 1), nframes)))
+        if print_corrupt_success:
+            print(f"Eliminating {len(bad_frame_range)} timestamps from corrupted video {corrupt_vid} in {rec_folder.parts[-1]} folder.")
+        good_frame_bool[bad_frame_range] = 0
 
     times = times[good_frame_bool]
     if print_success:
