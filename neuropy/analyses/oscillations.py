@@ -709,6 +709,12 @@ class Ripple:
             rpl_frames = [np.arange(p - buffer_frames, p + buffer_frames) for p in peakframe]  # Grab 100ms either side of peak frame
             rpl_frames = np.concatenate(rpl_frames)
 
+            # Calculate peak frequency and power
+            if rpl_frames[-1] >= len(lfp):  # Check if the buffer frames for the last ripple extend beyond end of recording
+                rpl_frames = rpl_frames[:-(2 * buffer_frames)]  # Chop out last ripple
+                peakframe = peakframe[:-1]  # Chop out ripple from peakframe
+                rpl_epochs = rpl_epochs[:-1]  # Chop out last ripple from end
+                print("Last ripple too close to end of recording. Removed from rpl_epochs.")
             # Grab signal for ripples only
             new_sig = Signal(lfp[rpl_frames].reshape(1, -1), sampling_rate=sampling_rate)
 
