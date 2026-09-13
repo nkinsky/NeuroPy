@@ -163,7 +163,8 @@ class Fig:
             ],
         )
 
-        # Set background color to match accessible slide grey color template
+        # Set background color to match accessible slide grey color template.
+        # Otherwise keep everything white.
         if figtype == "talk-grey":
             mpl.rcParams['figure.facecolor'] = (0.949, 0.949, 0.949)
             mpl.rcParams['axes.facecolor'] = (0.949, 0.949, 0.949)
