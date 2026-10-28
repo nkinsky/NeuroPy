@@ -5,6 +5,8 @@ from neuropy.core.datawriter import DataWriter
 from skimage import feature
 from skimage.measure import regionprops
 from pathlib import Path
+from copy import deepcopy
+import itertools
 
 from neuropy.utils.minian_util import load_variable
 from neuropy.utils.misc import flatten
@@ -151,7 +153,7 @@ class CaNeurons(DataWriter):
                 (hl,) = ax.plot(xedges, yedges, linewidth=0.7)
                 roi_color = hl.get_color()
                 lines.append(hl)
-                if plot_cell_id:
+                if plot_cell_id & ~np.isnan(xedges).all():
                     jitter = np.random.randint(
                         -5, 5, size=2
                     )  # prevents numbers from being overlaid if rois are merged
@@ -243,12 +245,23 @@ class CaNeurons(DataWriter):
         print("CaNeurons.plot_traces_and_ROIs not yet implemented")
         pass
 
-    def quick_merge(self, unit_ids: list, method="max"):
+    def quick_merge(self, unit_ids: list, method="max", nan_extra_neurons=True, orig_unit_ids=None):
         """Quickly merge units post-hoc - will make copies of merged units at each index
         noted in merge!!! Again made this recursive to accommodate list of lists (multiple
         sets of neurons to merge). NOTE each nested pair of neuron in unit_ids can only be two units.
         usage: CaNeuron.quick_merge([1, 3]) will merge units 1 and 3
-               CaNeuron.quick_merge([[1, 3], [2, 4]]) will merge 1 & 3 and 2 & 4 separately"""
+               CaNeuron.quick_merge([[1, 3], [2, 4]]) will merge 1 & 3 and 2 & 4 separately.
+
+
+        'nan_extra_neurons': True will set all but 1st neuron in each entry of unit_ids to NaN.
+        e.g. [[1, 3], [2, 4]] will set C, A, and YrA to all Nans for neurons 3 and 4.
+
+        DO NOT set orig_unit_ids, this is only used to preserve the merged unit list through
+        recursive runs of this function.
+        """
+
+        if orig_unit_ids is None:
+            orig_unit_ids = deepcopy(unit_ids)
 
         if (
             isinstance(unit_ids[0], list)
@@ -265,6 +278,7 @@ class CaNeurons(DataWriter):
             return caneuron_merge.quick_merge(
                 unit_ids=new_unit_ids,
                 method=method,
+                orig_unit_ids=orig_unit_ids,
             )
 
         if len(unit_ids) == 1:
@@ -301,11 +315,32 @@ class CaNeurons(DataWriter):
             neuron_type=self.neuron_type,
             metadata=self.metadata,
             basedir=self.basedir,
-            posthocmerge={"method": method, "unit_ids": unit_ids},
+            posthocmerge={"method": method, "unit_ids": orig_unit_ids},
         )
+
+        if nan_extra_neurons:
+            caneurons_merge.make_merged_nan([unit_ids])
 
         return caneurons_merge
 
+    def make_merged_nan(self, posthocmerge):
+        """NaN out all merged neurons, keeping only 1st entry of each pair in
+        'post_hoc_merge'.  e.g.,
+            CaNeurons.make_merge_nan([1, 2], [3, 4, 5]) will set C[2,: ], C[4,:], and C[5, :] to nan.
+            Same for YrA. A is left alone for ROI detection..
+        """
+
+        assert isinstance(posthocmerge, list), "posthocmerge must be a list of lists"
+        assert np.all([len(_) > 1 for _ in posthocmerge]), "posthocmerge must be a list of lists of length > 1"
+
+        # Assemble IDs to nan out
+        nan_ids = [merged_units[1:] for merged_units in posthocmerge]
+        nan_ids = list(itertools.chain.from_iterable(nan_ids))
+
+        # NaN them out
+        self.A[nan_ids] = np.nan
+        self.C[nan_ids] = np.nan
+        self.YrA[nan_ids] = np.nan
 
 class CaNeuronReg:
     """All things related to tracking neurons across days"""
@@ -481,23 +516,28 @@ class CaNeuronReg:
             ax=ax[1],
         )
 
-        # Shift edges to overlay properly
-        self.shift_roi_edges(roi_edges1, delta_com)
+        if np.isnan(roi_edges1[0].get_xdata()).all():
+            plt.cla()
+            ax[1].text(0, 0.5, "No ROI detected, all values 0 or NaN")
 
-        # Make new roi stand out
-        [roi_edge.set_color("w") for roi_edge in roi_edges1]
-        [roi_edge.set_linewidth(3) for roi_edge in roi_edges1]
+        else:
+            # Shift edges to overlay properly
+            self.shift_roi_edges(roi_edges1, delta_com)
 
-        # Automatically zoom into the area around the roi which has already been shifteg
-        roi_mid = [
-            np.mean(roi_edges1[0].get_xdata()),
-            np.mean(roi_edges1[0].get_ydata()),
-        ]
+            # Make new roi stand out
+            [roi_edge.set_color("w") for roi_edge in roi_edges1]
+            [roi_edge.set_linewidth(3) for roi_edge in roi_edges1]
 
-        # Zoom into reg axes.
-        zoom_amt = 100
-        ax[1].set_xlim(roi_mid[0] + np.array([-zoom_amt, zoom_amt]))
-        ax[1].set_ylim(roi_mid[1] + np.array([zoom_amt, -zoom_amt]))
+            # Automatically zoom into the area around the roi which has already been shifteg
+            roi_mid = [
+                np.mean(roi_edges1[0].get_xdata()),
+                np.mean(roi_edges1[0].get_ydata()),
+            ]
+
+            # Zoom into reg axes.
+            zoom_amt = 100
+            ax[1].set_xlim(roi_mid[0] + np.array([-zoom_amt, zoom_amt]))
+            ax[1].set_ylim(roi_mid[1] + np.array([zoom_amt, -zoom_amt]))
 
         # ax[0].set_xlim(roi_mid[0] - delta_com[0] + np.array([-60, 60]), auto=True)
         # ax[0].set_ylim(roi_mid[1] - delta_com[1] + np.array([-60, 60]), auto=True)
@@ -608,8 +648,10 @@ class PairwiseMap(DataWriter):
 
     @staticmethod
     def load(fp):
-
-        return DataWriter.from_file(fp)
+        pwmap = DataWriter.from_file(fp)
+        if pwmap.merge1 is not None or pwmap.merge2 is not None:
+            print("WARNING!: posthoc merged neurons found in at least one session. Be sure to account for with CaNeurons.make_merged_nan()")
+        return
 
 
 class MultiSessionMap:
@@ -870,14 +912,18 @@ def id_and_plot_reference_cells(
 
 def detect_roi_edges(roi_binary, **kwargs):
     """Detect roi edges and organize them nicely in CW/CCW fashion"""
-    edges = feature.canny(roi_binary, **kwargs)  # detect edges
-    inds = np.where(edges)  # Get edge locations in pixels
-    isort = np.argsort(
-        np.arctan2(inds[1] - inds[1].mean(), inds[0] - inds[0].mean())
-    )  # Sort by angle from center
+    if np.all(np.isnan(roi_binary).reshape(-1)) or np.all(~roi_binary.reshape(-1)):
+        xedges, yedges = np.nan, np.nan
 
-    xedges = np.append(inds[1][isort], inds[1][isort[0]])
-    yedges = np.append(inds[0][isort], inds[0][isort[0]])
+    else:
+        edges = feature.canny(roi_binary, **kwargs)  # detect edges
+        inds = np.where(edges)  # Get edge locations in pixels
+        isort = np.argsort(
+            np.arctan2(inds[1] - inds[1].mean(), inds[0] - inds[0].mean())
+        )  # Sort by angle from center
+
+        xedges = np.append(inds[1][isort], inds[1][isort[0]])
+        yedges = np.append(inds[0][isort], inds[0][isort[0]])
 
     return xedges, yedges
 
