@@ -55,7 +55,14 @@ class SleepScoreIO:
         assert len(files) == 1, f"1 state file expected, f{len(files)} files found"
         file = files[0]
 
-        states_from_mat = sio.loadmat(file, simplify_cells=True)
+        try:
+            states_from_mat = sio.loadmat(file, simplify_cells=True)
+        except NotImplementedError:
+            try:
+                import mat73
+                states_from_mat = mat73.loadmat(file)
+            except ModuleNotFoundError:
+                print("File saved in matlab v7.3. Run `pip install mat73` and then re-run code.")
         states_from_mat = states_from_mat['SleepState']['ints']
         all_epochs = []
         for matlab_label, epoch_times in states_from_mat.items():
