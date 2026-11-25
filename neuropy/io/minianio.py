@@ -280,13 +280,16 @@ def check_integrity(var_list, fix: str or bool in [False, "min_size"] = "min_siz
 
 
 if __name__ == "__main__":
-    animal_dir = Path('/data3/Psilocybin/Recording_Rats/Finn2')  # Base folder where all sessions are located
-    session_dict = {'Saline1': '2023_05_24_saline1', 'Psilocybin': '2023_05_25_psilocybin',
-                    'Saline2': '2023_05_26_saline2'}  # name for each session followed by sub-folder name
-    animal = 'Finn2'
-    session_list = ['Saline1', 'Psilocybin', 'Saline2']
-    dir_use = lambda sesh_name: animal_dir / session_dict[sesh_name]
 
-    keep = [['good', 'weird_ROI', 'maybe_interneurons']] * len(session_list)
-    trim = [None] * len(session_list)
-    [MinianIO(basedir=dir_use(session)).trim_neurons(keep=ke, trim=tr) for session, ke, tr in zip(session_list, keep, trim)]
+    dir_use = "/Users/nkinsky/Documents/UM/Working/Trace_FC/Recording_Rats/Finn/2022_01_20_training"
+    minian = MinianIO(basedir=dir_use)
+    # animal_dir = Path('/data3/Psilocybin/Recording_Rats/Finn2')  # Base folder where all sessions are located
+    # session_dict = {'Saline1': '2023_05_24_saline1', 'Psilocybin': '2023_05_25_psilocybin',
+    #                 'Saline2': '2023_05_26_saline2'}  # name for each session followed by sub-folder name
+    # animal = 'Finn2'
+    # session_list = ['Saline1', 'Psilocybin', 'Saline2']
+    # dir_use = lambda sesh_name: animal_dir / session_dict[sesh_name]
+    #
+    # keep = [['good', 'weird_ROI', 'maybe_interneurons']] * len(session_list)
+    # trim = [None] * len(session_list)
+    # [MinianIO(basedir=dir_use(session)).trim_neurons(keep=ke, trim=tr) for session, ke, tr in zip(session_list, keep, trim)]
